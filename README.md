@@ -173,8 +173,9 @@ Params:
 4. **Export**:
    - Export the word formations to a CSV file using `to_csv()`.
 
-## Example
-
+## Two examples with m=5
+### 1. S = <5, 91, 162, 253>
+For this numerical semigroup, as `Ap(S, 5) = {5, 91, 162, 253, 324}` and the relevant data is stored within `layers.txt`, we set `generators = [5, 91, 162, 253, 304]` in the initialization and proceed as follows:
 ```python
 # Initialize WordGenerator object
 gen = WordGenerator(
@@ -182,16 +183,65 @@ gen = WordGenerator(
     generators = [5, 91, 162, 253, 304],
 )
 # Execute word formations
-generator.execute(filename='layers.txt')
-
-# Print word formations
-generator.prettify(generator.words_list)
-
+gen.execute(filename='layers.txt')
+```
+Our next step involves examining word formations that occur more frequently than expected. This analysis helps us identify patterns that can be used to exclude unwanted words. It's often useful to examine words with an expected frequency of 1 to gain insight into the potential pattern they might follow:
+```python
+# Print out numerical values whose expected frequency is 1
+gen.nitpick(gen.words_list, mode = 3, freq = 1)
+```
+Analyzing numerical values in the printed result where word frequency exceeds 1 suggests that the excluded pattern might involve 'cb'. Let's confirm this hypothesis by setting `excluded_words = ['cb']`:
+```python
 # Exclude unwanted words
 first_iteration  = gen.exclude(
     gen.words_list,
     excluded_words = ['cb'],
     mode = 1
 )
-# Export to CSV
-generator.to_csv(first_iteration, filename='word_formations.csv')
+```
+Surprisingly, this is sufficient for determining the excluded pattern. We can confirm this by plotting a graph where the x-coordinate represents a numerical value and the y-coordinate represents the number of words it exceeds:
+```python
+# Data for our graph
+excedance = gen.nitpick(first_iteration, mode = 0)
+
+# Plot the array
+p = list_plot(excedance, color='red', marker='o')
+
+# Show the plot
+show(p)
+```
+With the removal of redundant words, we can proceed to determine the language's description. We'll do this by running `gen.nitpick(first_iteration, mode = 3, freq = k)` where `k=1,2,...` and then make educated guesses for the description of each frequency.
+### 2. S = <5,21,77, 14>
+For this numerical semigroup, `Ap(S, 5) = {5, 21, 42, 28, 14}` and the relavant data is stored within `simple.txt`:
+```python
+second_gen = WordGenerator(
+    regex = r'(a(b|c|d|e)*)|((b|c|d|e)*)',
+    generators = [5, 21, 42, 28, 14],
+)
+second_gen.execute("simple.txt")
+gen.nitpick(gen.words_list, mode = 3, freq = 1)
+```
+After examining numerical values with an expected word frequency of 1, it's tempting to retry 'cb' as the excluded pattern. However, this pattern leads to some numerical values missing one word in their formations. At this point, we're left with no option but to examine those with an expected word frequency of 2:
+```python
+second_gen.nitpick(
+    second_gen.words_list, 
+    mode = 3, 
+    freq = 2
+)
+```
+Our prior experience with other numerical semigroups having m=4, along with the one in the initial example, suggests that we should anticipate finding 'cb' remaining in the list of excluded words. After examining the first three numerical values with frequencies exceeding 2, let's test out the following pattern:
+```python
+second_iteration = second_gen.exclude(
+    second_gen.words_list,
+    excluded_words = ['cbb', 'ccb', 'cbcb', ], 
+    mode = 1
+)
+```
+This pattern effectively eliminates a significant number of words. Now, each exceedance for the word formations is exactly 1 (one can easily verify this by plotting out the graph of exceedance). A brief glance at the `simple.txt` file reveals that each numerical value either has a word frequency of 1 or 2 and by running 
+```python
+second_gen.nitpick(first_iteration, mode =0 , freq = 1)
+```
+we deduce that these exceedances correspond to numerical values with an expected frequency of exactly 1. Thus, to complete the list of excluded words, the following  regular expression is needed
+```python
+ab*(cbc)c* | bb*(cbc)c*
+```
